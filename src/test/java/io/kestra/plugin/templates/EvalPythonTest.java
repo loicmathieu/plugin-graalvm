@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 @MicronautTest
-class EvalJsTest {
+class EvalPythonTest {
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -17,10 +17,10 @@ class EvalJsTest {
     void runValue() throws Exception {
         RunContext runContext = runContextFactory.of();
 
-        EvalJs task = EvalJs.builder()
+        EvalPython task = EvalPython.builder()
             .script(
                 """
-                var BigDecimal = Java.type('java.math.BigDecimal');
+                import java.math.BigDecimal as BigDecimal
                 BigDecimal.valueOf(10).pow(20)"""
             )
             .build();
@@ -33,9 +33,11 @@ class EvalJsTest {
     void runMember() throws Exception {
         RunContext runContext = runContextFactory.of();
 
-        EvalJs task = EvalJs.builder()
+        EvalPython task = EvalPython.builder()
             .script(
-                "({ id   : 42, text : '42', arr  : [1,42,3] })"
+                """
+                import json
+                json.dumps({ 'id'   : 42, 'text' : '42', 'arr'  : [1,42,3] })"""
             )
             .outputs(List.of("id", "text"))
             .build();
@@ -48,26 +50,28 @@ class EvalJsTest {
     void runFunction() throws Exception {
         RunContext runContext = runContextFactory.of();
 
-        EvalJs task = EvalJs.builder()
+        EvalPython task = EvalPython.builder()
             .id("unit-test")
-            .type(EvalJs.class.getName())
+            .type(EvalPython.class.getName())
             .script(
                 """
-                    (function() {
-                    var Counter = Java.type('io.kestra.core.models.executions.metrics.Counter');
-                    var File = Java.type('java.io.File');
-                    var FileOutputStream = Java.type('java.io.FileOutputStream');
+                    import java
+                    import java.io.File as File
+                    import java.io.FileOutputStream as FileOutputStream
                     
-                    runContext.metric(Counter.of('total', 666, 'name', 'bla'));
+                    # types other than one coming from the Java SDK must be defined this way
+                    Counter = java.type("io.kestra.core.models.executions.metrics.Counter")
                     
-                    map = {'test': 'here'};
-                    var tempFile = runContext.workingDir().createTempFile().toFile();
-                    var output = new FileOutputStream(tempFile);
-                    output.write(256);
+                    runContext.metric(Counter.of('total', 666, 'name', 'bla'))
                     
-                    out = runContext.storage().putFile(tempFile);
-                    return {"map": map, "out": out};
-                    })"""
+                    map = {'test': 'here'}
+                    tempFile = runContext.workingDir().createTempFile().toFile()
+                    output = FileOutputStream(tempFile)
+                    output.write(256)
+                    
+                    out = runContext.storage().putFile(tempFile)
+                    {"map": map, "out": out}
+                    """
             )
             .outputs(List.of("map", "out"))
             .build();

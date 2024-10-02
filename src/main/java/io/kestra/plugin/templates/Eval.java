@@ -4,37 +4,23 @@ import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.inject.Inject;
+import jakarta.annotation.PreDestroy;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
 
 @SuperBuilder
 @ToString
 @EqualsAndHashCode
 @Getter
 @NoArgsConstructor
-@Schema(
-    description = "You can use a full script. \n" +
-        "The script contains some predefined variables:\n" +
-        "- All the variables you have in handlebars vars like `execution.id` for example\n" +
-        "- `logger` that you can used as the standard java logger (`logger.info('my message')`)\n" +
-        "- `runContext` that allow you to :\n" +
-        "  - `runContext.metric(Counter.of(\"file.size\", response.contentLength()))`: send metrics\n" +
-        "  - `runContext.uriToInputStream(URI uri): get a file from kestra internal storage\n" +
-        "  - `runContext.putTempFile(File file)`: store a file in kestra internal storage\n" +
-        "\n" +
-        "The stdOut & stdErr is not captured, so you must use `logger`\n"
-)
 public abstract class Eval extends AbstractScript implements RunnableTask<Eval.Output> {
 
     @Schema(
@@ -96,6 +82,9 @@ public abstract class Eval extends AbstractScript implements RunnableTask<Eval.O
     }
 
     private Object as(Value member) {
+        if (member == null) {
+            return null;
+        }
         if(member.isString()) {
             return member.asString();
         }
