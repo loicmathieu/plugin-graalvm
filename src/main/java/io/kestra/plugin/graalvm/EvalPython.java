@@ -1,4 +1,4 @@
-package io.kestra.plugin.templates;
+package io.kestra.plugin.graalvm;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
@@ -45,7 +45,7 @@ import lombok.experimental.SuperBuilder;
         )
     }
 )
-public class EvalPython extends Eval {
+public class EvalPython extends AbstractEval {
     @Override
     public Output run(RunContext runContext) throws Exception {
         return this.run(runContext, "python");

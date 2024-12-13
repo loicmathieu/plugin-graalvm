@@ -1,70 +1,71 @@
-package io.kestra.plugin.templates;
+package io.kestra.plugin.graalvm;
 
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
+import io.kestra.plugin.graalvm.proxy.RunContextProxy;
+import io.micronaut.context.ApplicationContext;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.annotation.PreDestroy;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
+import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
+import org.slf4j.Logger;
 
+import java.lang.reflect.Executable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import jakarta.annotation.PostConstruct;
 
 @SuperBuilder
 @ToString
 @EqualsAndHashCode
 @Getter
 @NoArgsConstructor
-public abstract class Eval extends AbstractScript implements RunnableTask<Eval.Output> {
-
+public abstract class AbstractEval extends AbstractScript implements RunnableTask<AbstractEval.Output> {
     @Schema(
         title = "A List of outputs variables that will be usable in outputs."
     )
     @PluginProperty
     protected List<String> outputs;
 
-    private Engine engine;
+    protected AbstractEval.Output run(RunContext runContext, String languageId) throws Exception {
 
-    @PostConstruct
-    void initEngine() {
-        this.engine = Engine.create();
-    }
-
-    @PreDestroy
-    void destroyEngine() {
-        this.engine.close();
-    }
-
-    protected Eval.Output run(RunContext runContext, String languageId) throws Exception {
-        try (Context context = Context.newBuilder().allowAllAccess(true).logHandler(System.out).build()) {
+        try (Context context = Context.newBuilder()
+                .engine(getEngine())
+                .allowIO(IOAccess.ALL)
+                .allowHostAccess(HostAccess
+                        .newBuilder(HostAccess.EXPLICIT)
+                        .allowArrayAccess(true).allowListAccess(true).allowBufferAccess(true).allowIterableAccess(true).allowIteratorAccess(true).allowMapAccess(true).allowPublicAccess(true)
+                        .build()
+                )
+                .allowHostClassLoading(true)
+                .allowHostClassLookup(name -> name.startsWith("java."))
+                .logHandler(System.out)
+                .build()) {
             var bindings = context.getBindings(languageId);
             // add all common vars to bindings in case of concurrency
             runContext.getVariables().forEach((key, value) -> bindings.putMember(key, value));
-            bindings .putMember("runContext", runContext);
-            bindings .putMember("logger", runContext.logger());
+            bindings.putMember("runContext", new RunContextProxy(runContext));
+            bindings.putMember("logger", runContext.logger());
 
-            var result = context.eval(languageId, generateScript(runContext));
+            var source = generateSource(languageId, runContext);
+            var result = context.eval(source);
 
             Output.OutputBuilder builder = Output.builder();
-            if(result.canExecute()) {
+            if (result.canExecute()) {
                 var results = result.execute();
-                if (outputs != null && outputs.size() > 0) {
+                if (results.hasMembers() && outputs != null && !outputs.isEmpty()) {
                     builder.outputs(gatherOutputs(results));
                 }
             }
-            else if(result.isHostObject()){
+            else if (result.isHostObject()){
                 builder.result(result.asHostObject());
             }
-            else if(result.hasMembers()) {
-                if (outputs != null && outputs.size() > 0) {
-                    builder.outputs(gatherOutputs(result));
-                }
+            else if (result.hasMembers() && outputs != null && !outputs.isEmpty()) {
+                builder.outputs(gatherOutputs(result));
             }
 
             return builder
@@ -73,7 +74,6 @@ public abstract class Eval extends AbstractScript implements RunnableTask<Eval.O
     }
 
     private Map<String, Object> gatherOutputs(Value value) {
-        System.out.println(value);
         Map<String, Object> outputs = new HashMap<>();
         this.outputs
             .forEach(s -> outputs.put(s, as(value.getMember(s))));
