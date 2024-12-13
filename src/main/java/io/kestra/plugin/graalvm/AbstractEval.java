@@ -42,7 +42,7 @@ public abstract class AbstractEval extends AbstractScript implements RunnableTas
                         .build()
                 )
                 .allowHostClassLoading(true)
-                .allowHostClassLookup(name -> name.startsWith("java."))
+                .allowHostClassLookup(name -> name.startsWith("java.") || name.startsWith("io.kestra.core.models"))
                 .logHandler(System.out)
                 .build()) {
             var bindings = context.getBindings(languageId);
