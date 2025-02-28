@@ -4,7 +4,6 @@ import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.graalvm.proxy.RunContextProxy;
-import io.micronaut.context.ApplicationContext;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -12,9 +11,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
-import org.slf4j.Logger;
 
-import java.lang.reflect.Executable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,35 +79,46 @@ public abstract class AbstractEval extends AbstractScript implements RunnableTas
     }
 
     private Object as(Value member) {
-        if (member == null) {
+        if (member == null || member.canExecute()) { // we should not have executable here, let's return null to be safe
             return null;
         }
-        if(member.isString()) {
+        if (member.isString()) {
             return member.asString();
         }
-        if(member.isNumber() && member.fitsInInt()) {
+        if (member.isNumber() && member.fitsInInt()) {
             return member.asInt();
         }
-        if(member.isNumber() && member.fitsInLong()) {
+        if (member.isNumber() && member.fitsInLong()) {
             return member.asLong();
         }
-        if(member.isNumber() && member.fitsInFloat()) {
+        if (member.isNumber() && member.fitsInFloat()) {
             return member.asFloat();
         }
-        if(member.isNumber() && member.fitsInDouble()) {
+        if (member.isNumber() && member.fitsInDouble()) {
             return member.asDouble();
         }
-        if(member.isProxyObject()) {
+        if (member.isProxyObject()) {
             return member.asProxyObject();
         }
-        if(member.isHostObject()) {
+        if (member.isHostObject()) {
             return member.asHostObject();
         }
-        if(member.hasMembers()) {
-            // this should be a map
-            Map<String, Object> value = new HashMap<>();
-            member.getMemberKeys().forEach(key -> value.put(key, as(member.getMember(key))));
-            return value;
+        if (member.hasHashEntries()) {
+            Map<String, Object> values = HashMap.newHashMap((int) member.getHashSize());
+            Value iterator = member.getHashEntriesIterator();
+            while (iterator.hasIteratorNextElement()) {
+                Value value = iterator.getIteratorNextElement();
+                values.put(value.getArrayElement(0).asString(), value.getArrayElement(1));
+            }
+            return values;
+        }
+        if (member.hasMembers()) {
+            // try to read members into a map
+            Map<String, Object> values = new HashMap<>();
+            member.getMemberKeys().forEach(key -> {
+                values.put(key, as(member.getMember(key)));
+            });
+            return values;
         }
 
         // do our best to use a known type, this will crash with a ClassCastException if the type is not transformable

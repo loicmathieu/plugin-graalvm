@@ -42,6 +42,16 @@ public class RunContextProxy extends RunContext {
     }
 
     @Override
+    public String getTraceParent() {
+        return delegate.getTraceParent();
+    }
+
+    @Override
+    public void setTraceParent(String traceParent) {
+        delegate.setTraceParent(traceParent);
+    }
+
+    @Override
     public String render(String inline) throws IllegalVariableEvaluationException {
         return delegate.render(inline);
     }
