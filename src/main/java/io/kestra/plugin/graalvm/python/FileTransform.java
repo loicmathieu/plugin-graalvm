@@ -1,8 +1,9 @@
-package io.kestra.plugin.graalvm;
+package io.kestra.plugin.graalvm.python;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.runners.RunContext;
+import io.kestra.plugin.graalvm.AbstractFileTransform;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -44,7 +45,7 @@ import lombok.experimental.SuperBuilder;
                 )
         }
 )
-public class FileTransformPython extends AbstractFileTransform {
+public class FileTransform extends AbstractFileTransform {
     @Override
     public Output run(RunContext runContext) throws Exception {
         return this.run(runContext, "python");

@@ -1,4 +1,4 @@
-package io.kestra.plugin.graalvm.proxy;
+package io.kestra.plugin.graalvm;
 
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.executions.AbstractMetricEntry;

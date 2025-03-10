@@ -1,8 +1,9 @@
-package io.kestra.plugin.graalvm;
+package io.kestra.plugin.graalvm.ruby;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.runners.RunContext;
+import io.kestra.plugin.graalvm.AbstractFileTransform;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -16,12 +17,12 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Execute a  JavaScript script using the GraalVM scripting engine."
+        title = "Execute a  JavaScript script using the GraalVM scripting engine."
 )
 @Plugin(
-    examples = {
-        @Example(
-            code = """
+        examples = {
+                @Example(
+                        code = """
                 outputs:
                   - out
                   - map
@@ -41,12 +42,12 @@ import lombok.experimental.SuperBuilder;
                     out = runContext.storage().putFile(tempFile);
                     return {"map": map, "out": out};
                   })"""
-        )
-    }
+                )
+        }
 )
-public class EvalJs extends AbstractEval {
+public class FileTransform extends AbstractFileTransform {
     @Override
-    public AbstractEval.Output run(RunContext runContext) throws Exception {
-        return this.run(runContext, "js");
+    public Output run(RunContext runContext) throws Exception {
+        return this.run(runContext, "ruby");
     }
 }

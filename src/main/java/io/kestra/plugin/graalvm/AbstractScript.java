@@ -18,7 +18,7 @@ import org.graalvm.polyglot.Source;
 @EqualsAndHashCode
 @Getter
 @NoArgsConstructor
-public abstract class AbstractScript extends Task {
+abstract class AbstractScript extends Task {
     @Schema(
         title = "A full script"
     )

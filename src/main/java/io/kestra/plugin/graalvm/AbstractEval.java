@@ -3,7 +3,6 @@ package io.kestra.plugin.graalvm;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.graalvm.proxy.RunContextProxy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -32,13 +31,17 @@ public abstract class AbstractEval extends AbstractScript implements RunnableTas
 
         try (Context context = Context.newBuilder()
                 .engine(getEngine())
+                // allow I/O
                 .allowIO(IOAccess.ALL)
+                // allow host access with a curated default
                 .allowHostAccess(HostAccess
                         .newBuilder(HostAccess.EXPLICIT)
                         .allowArrayAccess(true).allowListAccess(true).allowBufferAccess(true).allowIterableAccess(true).allowIteratorAccess(true).allowMapAccess(true).allowPublicAccess(true)
                         .build()
                 )
+                // allow loading class
                 .allowHostClassLoading(true)
+                // restrict loading class to java.* and io.kestra.core.models.*
                 .allowHostClassLookup(name -> name.startsWith("java.") || name.startsWith("io.kestra.core.models"))
                 .logHandler(System.out)
                 .build()) {
@@ -72,9 +75,7 @@ public abstract class AbstractEval extends AbstractScript implements RunnableTas
 
     private Map<String, Object> gatherOutputs(Value value) {
         Map<String, Object> outputs = new HashMap<>();
-        this.outputs
-            .forEach(s -> outputs.put(s, as(value.getMember(s))));
-
+        this.outputs.forEach(s -> outputs.put(s, as(value.getMember(s))));
         return outputs;
     }
 

@@ -1,8 +1,7 @@
-package io.kestra.plugin.templates;
+package io.kestra.plugin.graalvm.js;
 
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
-import io.kestra.plugin.graalvm.EvalJs;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -10,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 @MicronautTest
-class EvalJsTest {
+class EvalTest {
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -18,7 +17,7 @@ class EvalJsTest {
     void runValue() throws Exception {
         RunContext runContext = runContextFactory.of();
 
-        EvalJs task = EvalJs.builder()
+        Eval task = Eval.builder()
             .script(
                 """
                 var BigDecimal = Java.type('java.math.BigDecimal');
@@ -34,7 +33,7 @@ class EvalJsTest {
     void runMember() throws Exception {
         RunContext runContext = runContextFactory.of();
 
-        EvalJs task = EvalJs.builder()
+        Eval task = Eval.builder()
             .script(
                 "({ id   : 42, text : '42', arr  : [1,42,3] })"
             )
@@ -49,9 +48,9 @@ class EvalJsTest {
     void runFunction() throws Exception {
         RunContext runContext = runContextFactory.of();
 
-        EvalJs task = EvalJs.builder()
+        Eval task = Eval.builder()
             .id("unit-test")
-            .type(EvalJs.class.getName())
+            .type(Eval.class.getName())
             .script(
                 """
                     (function() {

@@ -53,10 +53,9 @@ dependencies {
 
     // GraalVM
     api "org.graalvm.polyglot:polyglot:$graalVMVersion"
-    api "org.graalvm.polyglot:js-community:$graalVMVersion" //35MB
-    api "org.graalvm.polyglot:python-community:$graalVMVersion" //100MB
-    api "org.graalvm.polyglot:ruby-community:$graalVMVersion" //40MB
-    // llvm for llvm backend languages ?
+    api "org.graalvm.polyglot:js-community:$graalVMVersion"
+    api "org.graalvm.polyglot:python-community:$graalVMVersion"
+    api "org.graalvm.polyglot:ruby-community:$graalVMVersion"
 }
 
 
