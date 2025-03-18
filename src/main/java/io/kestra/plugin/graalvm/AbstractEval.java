@@ -7,9 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 
 import java.util.HashMap;
 import java.util.List;
@@ -28,23 +26,7 @@ public abstract class AbstractEval extends AbstractScript implements RunnableTas
     protected List<String> outputs;
 
     protected AbstractEval.Output run(RunContext runContext, String languageId) throws Exception {
-
-        try (Context context = Context.newBuilder()
-                .engine(getEngine())
-                // allow I/O
-                .allowIO(IOAccess.ALL)
-                // allow host access with a curated default
-                .allowHostAccess(HostAccess
-                        .newBuilder(HostAccess.EXPLICIT)
-                        .allowArrayAccess(true).allowListAccess(true).allowBufferAccess(true).allowIterableAccess(true).allowIteratorAccess(true).allowMapAccess(true).allowPublicAccess(true)
-                        .build()
-                )
-                // allow loading class
-                .allowHostClassLoading(true)
-                // restrict loading class to java.* and io.kestra.core.models.*
-                .allowHostClassLookup(name -> name.startsWith("java.") || name.startsWith("io.kestra.core.models"))
-                .logHandler(System.out)
-                .build()) {
+        try (Context context = buildContext()) {
             var bindings = context.getBindings(languageId);
             // add all common vars to bindings in case of concurrency
             runContext.getVariables().forEach((key, value) -> bindings.putMember(key, value));
@@ -68,8 +50,7 @@ public abstract class AbstractEval extends AbstractScript implements RunnableTas
                 builder.outputs(gatherOutputs(result));
             }
 
-            return builder
-                .build();
+            return builder.build();
         }
     }
 
@@ -80,7 +61,7 @@ public abstract class AbstractEval extends AbstractScript implements RunnableTas
     }
 
     private Object as(Value member) {
-        if (member == null || member.canExecute()) { // we should not have executable here, let's return null to be safe
+        if (member == null || member.canExecute()) { // we should not have an executable here, let's return null to be safe
             return null;
         }
         if (member.isString()) {

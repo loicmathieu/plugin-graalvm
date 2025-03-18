@@ -10,8 +10,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
+import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.io.IOAccess;
 
 @SuperBuilder
 @ToString
@@ -27,7 +30,27 @@ abstract class AbstractScript extends Task {
 
     private volatile transient Engine engine;
 
-    protected Engine getEngine() {
+    protected Context buildContext() {
+        return Context.newBuilder()
+                .engine(getEngine())
+                // allow I/O
+                .allowIO(IOAccess.ALL)
+                // allow host access with a curated default
+                .allowHostAccess(HostAccess
+                        .newBuilder(HostAccess.EXPLICIT)
+                        .allowArrayAccess(true).allowListAccess(true).allowBufferAccess(true).allowIterableAccess(true).allowIteratorAccess(true).allowMapAccess(true).allowPublicAccess(true)
+                        .build()
+                )
+                // allow loading class
+                .allowHostClassLoading(true)
+                // restrict loading class to java.* and io.kestra.core.models.*
+                .allowHostClassLookup(name -> name.startsWith("java.") || name.startsWith("io.kestra.core.models"))
+                // log to sysout TODO check that!
+                .logHandler(System.out)
+                .build();
+    }
+
+    private Engine getEngine() {
         // double-checked locking idiom
         Engine engine = this.engine;
         if (engine == null) {
@@ -40,7 +63,6 @@ abstract class AbstractScript extends Task {
         }
         return engine;
     }
-
 
     protected Source generateSource(String languageId, RunContext runContext) throws IllegalVariableEvaluationException {
         var rendered = runContext.render(this.script);

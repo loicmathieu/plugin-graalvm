@@ -98,7 +98,7 @@ public abstract class AbstractFileTransform extends AbstractScript implements Ru
         Source scripts,
         Writer output
     ) throws IOException {
-        try (Context context = Context.newBuilder().engine(getEngine()).allowAllAccess(true).logHandler(System.out).build()) {
+        try (Context context = buildContext()) {
             Flux<Object> sequential;
 
             if (this.concurrent != null) {
